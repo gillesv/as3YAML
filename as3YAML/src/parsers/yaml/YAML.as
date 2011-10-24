@@ -1,4 +1,4 @@
-package yaml
+package parsers.yaml
 {
 	/**
 	 * Actionscript 3.0 port of the CommonJS YAML Parser (https://github.com/visionmedia/js-yaml)
@@ -41,12 +41,12 @@ package yaml
 		 * @param value
 		 * 
 		 */		
-		public function YAML(value:* = null){
+		public function YAML(){
 			
 		}
 		
-		public function eval(value:String):void{
-			new Parser(tokenize(value)).parse();
+		public function eval(value:String):*{
+			return new Parser(tokenize(value)).parse();
 		}
 		
 		private function context(str:*):String {
