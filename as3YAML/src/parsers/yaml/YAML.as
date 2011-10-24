@@ -46,6 +46,8 @@ package parsers.yaml
 		}
 		
 		public function eval(value:String):*{
+			trace(tokenize(value));
+			
 			return new Parser(tokenize(value)).parse();
 		}
 		

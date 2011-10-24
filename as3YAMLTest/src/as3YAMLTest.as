@@ -2,6 +2,9 @@ package
 {
 	import flash.display.Sprite;
 	import flash.events.Event;
+	import flash.events.HTTPStatusEvent;
+	import flash.events.IOErrorEvent;
+	import flash.events.ProgressEvent;
 	import flash.external.ExternalInterface;
 	import flash.net.URLLoader;
 	import flash.net.URLRequest;
@@ -13,16 +16,28 @@ package
 		public function as3YAMLTest()
 		{
 			var loader:URLLoader = new URLLoader();
-			loader.addEventListener(Event.COMPLETE, on_complete);
+			loader.addEventListener(Event.COMPLETE, function(evt:Event):void{
+				var string:String = loader.data as String;
+								
+				var yaml:YAML = new YAML();
+				trace("loaded");
+				trace(yaml.eval(string));
+			});
+			loader.addEventListener(Event.OPEN, function(evt:Event):void{
+				log("Open!");
+			});
+			loader.addEventListener(HTTPStatusEvent.HTTP_STATUS, function(evt:HTTPStatusEvent):void{
+				log(evt.status);
+			});
+			loader.addEventListener(IOErrorEvent.IO_ERROR, function(evt:IOErrorEvent):void{
+				log("couldn't load");
+			});
+			loader.addEventListener(ProgressEvent.PROGRESS, function(evt:ProgressEvent):void{
+				log("Load progress: " + evt.bytesLoaded + " " + evt.bytesTotal);
+			});
 			loader.load(new URLRequest('examples/config.yml'));
-		}
-		
-		private function on_complete(evt:Event):void{
-			var loader:URLLoader = evt.target as URLLoader;
-						
-			var y:YAML = new YAML();
 			
-			log(y.eval(loader.data as String));
+			log('fuck cache 5');
 		}
 		
 		/**
