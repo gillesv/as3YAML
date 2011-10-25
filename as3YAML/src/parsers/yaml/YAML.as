@@ -1,13 +1,17 @@
 package parsers.yaml
 {
+	import be.proximity.framework.logging.Logr;
+
 	/**
 	 * Actionscript 3.0 port of the CommonJS YAML Parser (https://github.com/visionmedia/js-yaml)
 	 *  
 	 * @author gillesv
 	 * 
 	 */	
-	public class YAML
+	public dynamic class YAML extends Object
 	{
+		private var string:String;
+		
 		/**
 		 * YAML grammar tokens.
 		 */
@@ -41,14 +45,20 @@ package parsers.yaml
 		 * @param value
 		 * 
 		 */		
-		public function YAML(){
+		public function YAML(value:String = null){
+			this.string = value;
 			
+			if(this.string != null){
+				eval(this.string);
+			}
 		}
 		
-		public function eval(value:String):*{
-			trace(tokenize(value));
+		public function eval(value:String):void{
+			this.string = value;
+						
+			var parser:Parser = new Parser(tokenize(value));
 			
-			return new Parser(tokenize(value)).parse();
+			trace(tokenize(value));
 		}
 		
 		private function context(str:*):String {
@@ -66,63 +76,59 @@ package parsers.yaml
 		 * @return {array}
 		 * @api private
 		 */
+		
 		private function tokenize(str:String):Array{
-			var token:Array, captures:*, ignore:Boolean, input:*,
-				indents:int = 0, lastIndents:int = 0,
-				stack:Array = [], indentAmount:int = -1;
+			var token;
+			var captures;
+			var ignore;
+			var input;
+			var indents;
+			var lastIndents;
+			var stack = [];
+			var indentAmount:int = -1;
+			
+			indents = lastIndents = 0;
 			
 			while (str.length) {
-				for (var i:int = 0, len:int = tokens.length; i < len; ++i){
-					if ((captures = tokens[i][1].exec(str)) != null) {
-						
-						token = [tokens[i][0], captures]; 
-						str = str.replace(tokens[i][1], '');
-						
+				for (var i = 0, len = tokens.length; i < len; ++i)
+					if (captures = tokens[i][1].exec(str)) {
+						token = [tokens[i][0], captures],
+							str = str.replace(tokens[i][1], '')
 						switch (token[0]) {
 							case 'comment':
-								ignore = true;
+								ignore = true
 								break
 							case 'indent':
-								lastIndents = indents;
-								
+								lastIndents = indents 
 								// determine the indentation amount from the first indent
 								if (indentAmount == -1) {
-									indentAmount = token[1][1].length;
+									indentAmount = token[1][1].length
 								}
 								
-								indents = token[1][1].length / indentAmount;
-								
-								if (indents === lastIndents){
-									ignore = true;
-								}else if (indents > lastIndents + 1){
-									throw new Error('invalid indentation, got ' + indents + ' instead of ' + (lastIndents + 1));
-								}else if (indents < lastIndents) {
-									input = token[1].input;
-									token = ['dedent', input];	// @gillesv: note for later
-									//token.input = input;
-									
-									while (--lastIndents > indents){
-										stack.push(token);
-									}
+								indents = token[1][1].length / indentAmount
+								if (indents === lastIndents)
+									ignore = true
+								else if (indents > lastIndents + 1)
+									throw new Error('invalid indentation, got ' + indents + ' instead of ' + (lastIndents + 1))
+								else if (indents < lastIndents) {
+									input = token[1].input
+									token = ['dedent']
+									token.input = input
+									while (--lastIndents > indents)
+										stack.push(token)
 								}
-								break;
 						}
+						break
 					}
-				}
-				
-				if (!ignore){
-					if (token){
-						stack.push(token);
-						token = null;
-					}else{ 
-						throw new Error(context(str));
-					}
-					
-					ignore = false;
-				}
+				if (!ignore)
+					if (token)
+						stack.push(token),
+							token = null
+					else 
+						throw new Error(context(str))
+				ignore = false
 			}
-				
-			return stack;
+			return stack
 		}
 	}
 }
@@ -159,7 +165,7 @@ internal class Parser{
 	 * Advance and return the token's value. 
 	 */	
 	public function advanceValue():*{
-		return this.advance()[1][1];
+		return advance()[1][1];
 	}
 	
 	/**
@@ -178,7 +184,7 @@ internal class Parser{
 	public function expect(type:*, msg:*):void{
 		if (accept(type)) return;
 		
-		throw new Error(msg + ', ' + this.peek()[2]);	// this.peek()[1].input
+		throw new Error(msg + ', ' + this.peek()[1].input);
 	}
 	
 	/**
@@ -317,31 +323,34 @@ internal class Parser{
 	}
 	
 	public function parse():*{
-		switch(peek()[0]){
+		var type:String = peek()[0];
+		
+		switch(type){
 			case 'doc':
-				return this.parseDoc();
+				return parseDoc();
 			case '-':
-				return this.parseList();
+				return parseList();
 			case '{':
-				return this.parseInlineHash();
+				return parseInlineHash();
 			case '[':
-				return this.parseInlineList();
+				return parseInlineList();
 			case 'id':
-				return this.parseHash();
+				return parseHash();
 			case 'string':
-				return this.advanceValue();
+				return advanceValue();
 			case 'timestamp':
-				return this.parseTimestamp();
+				return parseTimestamp();
 			case 'float':
-				return parseFloat(this.advanceValue());
+				return parseFloat(advanceValue());
 			case 'int':
-				return parseInt(this.advanceValue());
+				return parseInt(advanceValue());
 			case 'true':
-				this.advanceValue(); return true;
+				advanceValue(); return true;
 			case 'false':
-				this.advanceValue(); return false;
+				advanceValue(); return false;
 			case 'null':
-				this.advanceValue(); return null;
+			default:
+				advanceValue(); return null;
 		}
 		
 		return null;

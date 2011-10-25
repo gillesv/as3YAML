@@ -19,25 +19,20 @@ package
 			loader.addEventListener(Event.COMPLETE, function(evt:Event):void{
 				var string:String = loader.data as String;
 								
-				var yaml:YAML = new YAML();
-				trace("loaded");
-				trace(yaml.eval(string));
+				var yaml:YAML = new YAML(string);
 			});
 			loader.addEventListener(Event.OPEN, function(evt:Event):void{
-				log("Open!");
 			});
 			loader.addEventListener(HTTPStatusEvent.HTTP_STATUS, function(evt:HTTPStatusEvent):void{
-				log(evt.status);
+				//log(evt.status);
 			});
 			loader.addEventListener(IOErrorEvent.IO_ERROR, function(evt:IOErrorEvent):void{
 				log("couldn't load");
 			});
 			loader.addEventListener(ProgressEvent.PROGRESS, function(evt:ProgressEvent):void{
-				log("Load progress: " + evt.bytesLoaded + " " + evt.bytesTotal);
+				//log("Load progress: " + evt.bytesLoaded + " " + evt.bytesTotal);
 			});
 			loader.load(new URLRequest('examples/config.yml'));
-			
-			log('fuck cache 5');
 		}
 		
 		/**
