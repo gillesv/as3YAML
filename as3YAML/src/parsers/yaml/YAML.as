@@ -58,7 +58,7 @@ package parsers.yaml
 						
 			var parser:Parser = new Parser(tokenize(value));
 			
-			Logr.o(parser.parse());
+			Logr.l(tokenize(value).length);
 		}
 		
 		/**
@@ -98,18 +98,22 @@ package parsers.yaml
 								}
 								
 								indents = token[1][1].length / indentAmount
-								if (indents === lastIndents)
+								
+								if (indents === lastIndents){
 									ignore = true
-								else if (indents > lastIndents + 1)
+								}else if (indents > lastIndents + 1){
 									throw new Error('invalid indentation, got ' + indents + ' instead of ' + (lastIndents + 1))
-								else if (indents < lastIndents) {
+								}else if (indents < lastIndents) {
 									input = token[1].input
 									token = ['dedent']
 									token.input = input
 									while (--lastIndents > indents)
 										stack.push(token)
+								}else{
+									trace("someone done messed");
 								}
-								break
+								
+								break;
 						}
 						
 					}
