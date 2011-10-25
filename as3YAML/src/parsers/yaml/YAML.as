@@ -58,15 +58,7 @@ package parsers.yaml
 						
 			var parser:Parser = new Parser(tokenize(value));
 			
-			trace(tokenize(value));
-		}
-		
-		private function context(str:*):String {
-			if (typeof str !== 'string') return '';
-			
-			str = str.slice(0, 25).replace(/\n/g, '\\n').replace(/"/g, '\\\"');
-			
-			return 'near "' + str + '"';
+			Logr.o(parser.parse());
 		}
 		
 		/**
@@ -96,7 +88,7 @@ package parsers.yaml
 							str = str.replace(tokens[i][1], '')
 						switch (token[0]) {
 							case 'comment':
-								ignore = true
+								ignore = true;
 								break
 							case 'indent':
 								lastIndents = indents 
@@ -117,8 +109,9 @@ package parsers.yaml
 									while (--lastIndents > indents)
 										stack.push(token)
 								}
+								break
 						}
-						break
+						
 					}
 				if (!ignore)
 					if (token)
@@ -132,6 +125,15 @@ package parsers.yaml
 		}
 	}
 }
+
+internal function context(str:*):String {
+	if (typeof str !== 'string') return '';
+	
+	str = str.slice(0, 25).replace(/\n/g, '\\n').replace(/"/g, '\\\"');
+	
+	return 'near "' + str + '"';
+}
+
 internal class Parser{
 	
 	public var tokens:Array;
@@ -144,215 +146,180 @@ internal class Parser{
 	 * Look-ahead a single token.
 	 */	
 	public function peek():* {
-		return tokens[0];
+		return this.tokens[0];
 	}
 	
 	/**
 	 * Return the next token type. 
 	 */	
 	public function peekType(val:*):Boolean{
-		return tokens[0] && tokens[0][0] === val;
+		return this.tokens[0] &&
+			this.tokens[0][0] === val
 	}
 	
 	/**
 	 * Advance by a single token.
 	 */
 	public function advance():*{
-		return tokens.shift();
+		return this.tokens.shift()
 	}
 	
 	/**
 	 * Advance and return the token's value. 
 	 */	
 	public function advanceValue():*{
-		return advance()[1][1];
+		return this.advance()[1][1]
 	}
 	
 	/**
 	 * Accept _type_ and advance or do nothing. 
 	 */	
 	public function accept(type:*):*{
-		if(peekType(type))
-			return this.advance();
-		
-		return null;
+		if (this.peekType(type))
+			return this.advance()
 	}
 	
 	/**
 	 * Expect _type_ or throw an error _msg_.
 	 */	
 	public function expect(type:*, msg:*):void{
-		if (accept(type)) return;
-		
-		throw new Error(msg + ', ' + this.peek()[1].input);
+		if (this.accept(type)) return
+			throw new Error(msg + ', ' + context(this.peek()[1].input))
 	}
 	
 	/**
 	 * Ignore space & advance
 	 */	
 	public function ignoreSpace():void{
-		while(peekType('space')){
-			advance();
-		}
+		while (this.peekType('space'))
+			this.advance()
 	}
 	
 	/**
 	 * Ignore whitespace & continue 
 	 */	
 	public function ignoreWhitespace():void{
-		while(peekType('space') || peekType('indent') || peekType('dedent')){
-			advance();
-		}
+		while (this.peekType('space') ||
+			this.peekType('indent') ||
+			this.peekType('dedent'))
+			this.advance()
 	}
 	
 	/*** parsing methods ***/
 	
 	public function parseDoc():* {
-		accept('doc');
-		expect('indent', 'expected indent after document');
-		
-		var val:* = this.parse();
-		
-		expect('dedent', 'document not properly dedented');
-		
-		return val;
+		this.accept('doc')
+		this.expect('indent', 'expected indent after document')
+		var val = this.parse()
+		this.expect('dedent', 'document not properly dedented')
+		return val
 	}
 	
 	public function parseList():Array {
-		var list:Array = [];
-		
-		while (accept('-')) {
-			ignoreSpace();
-			
-			if (accept('indent')){
-				list.push(parse());
-				expect('dedent', 'list item not properly dedented');
-			}else{
-				list.push(parse());
-			}
-			
-			this.ignoreSpace();
+		var list = []
+		while (this.accept('-')) {
+			this.ignoreSpace()
+			if (this.accept('indent'))
+				list.push(this.parse()),
+					this.expect('dedent', 'list item not properly dedented')
+			else
+				list.push(this.parse())
+			this.ignoreSpace()
 		}
-		
-		return list;
+		return list
 	}
 	
 	public function parseInlineList():* {
-		var list:Array = [], i:int = 0;
-		
-		accept('[');
-		
-		while (!accept(']')) {
-			ignoreSpace();
-			
-			if (i) expect(',', 'expected comma');
-			
-			ignoreSpace();
-			list.push(parse());
-			ignoreSpace();
-			
-			++i;
+		var list = [], i = 0
+		this.accept('[')
+		while (!this.accept(']')) {
+			this.ignoreSpace()
+			if (i) this.expect(',', 'expected comma')
+			this.ignoreSpace()
+			list.push(this.parse())
+			this.ignoreSpace()
+				++i
 		}
-		return list;
+		return list
 	}
 	
 	 public function parseTimestamp():Date {
-		var token:Array = this.advance()[1];
-		var date:Date = new Date();
-		var year:* = token[2]
-			, month:* = token[3]
-			, day:* = token[4]
-			, hour:* = token[5] || 0 
-			, min:* = token[6] || 0
-			, sec:* = token[7] || 0;
-		
-		date.setUTCFullYear(year, month-1, day);
-		date.setUTCHours(hour);
-		date.setUTCMinutes(min);
-		date.setUTCSeconds(sec);
-		date.setUTCMilliseconds(0);
-		
-		return date;
+		 var token = this.advance()[1]
+		 var date = new Date
+		 var year = token[2]
+			 , month = token[3]
+			 , day = token[4]
+			 , hour = token[5] || 0 
+			 , min = token[6] || 0
+			 , sec = token[7] || 0
+		 
+		 date.setUTCFullYear(year, month-1, day)
+		 date.setUTCHours(hour)
+		 date.setUTCMinutes(min)
+		 date.setUTCSeconds(sec)
+		 date.setUTCMilliseconds(0)
+		 return date
 	}
 	
 	public function parseHash():* {
-		var id:*, hash:Object = {};
-		
-		while (peekType('id') && (id = advanceValue())) {
-			
-			expect(':', 'expected semi-colon after id');
-			ignoreSpace();
-			
-			if (accept('indent')){
-				hash[id] = parse();
-				expect('dedent', 'hash not properly dedented');
-			}else{
-				hash[id] = parse();
-			}
-			
-			ignoreSpace();
-		}
-		
-		return hash;
-	}
-	
-	 public function parseInlineHash():* {
-		var hash:Object = {}, id:*, i:int = 0;
-		
-		accept('{');
-		
-		while (!accept('}')) {
-			ignoreSpace();
-			
-			if (i){ 
-				expect(',', 'expected comma');
-			}
-			
-			this.ignoreWhitespace();
-			
-			if (peekType('id') && (id = advanceValue())) {
-				expect(':', 'expected semi-colon after id');
-				ignoreSpace();
-				hash[id] = parse();
-				ignoreWhitespace()
-			}
-			
-			++i;
+		var id, hash = {}
+		while (this.peekType('id') && (id = this.advanceValue())) {
+			this.expect(':', 'expected semi-colon after id')
+			this.ignoreSpace()
+			if (this.accept('indent'))
+				hash[id] = this.parse(),
+					this.expect('dedent', 'hash not properly dedented')
+			else
+				hash[id] = this.parse()
+			this.ignoreSpace()
 		}
 		return hash
 	}
 	
-	public function parse():*{
-		var type:String = peek()[0];
-		
-		switch(type){
+	 public function parseInlineHash():* {
+		 var hash = {}, id, i = 0
+		 this.accept('{')
+		 while (!this.accept('}')) {
+			 this.ignoreSpace()
+			 if (i) this.expect(',', 'expected comma')
+			 this.ignoreWhitespace()
+			 if (this.peekType('id') && (id = this.advanceValue())) {
+				 this.expect(':', 'expected semi-colon after id')
+				 this.ignoreSpace()
+				 hash[id] = this.parse()
+				 this.ignoreWhitespace()
+			 }
+			 ++i
+		 }
+		 return hash
+	}
+	
+	public function parse():*{		
+		switch (this.peek()[0]) {
 			case 'doc':
-				return parseDoc();
+				return this.parseDoc()
 			case '-':
-				return parseList();
+				return this.parseList()
 			case '{':
-				return parseInlineHash();
+				return this.parseInlineHash()
 			case '[':
-				return parseInlineList();
+				return this.parseInlineList()
 			case 'id':
-				return parseHash();
+				return this.parseHash()
 			case 'string':
-				return advanceValue();
+				return this.advanceValue()
 			case 'timestamp':
-				return parseTimestamp();
+				return this.parseTimestamp()
 			case 'float':
-				return parseFloat(advanceValue());
+				return parseFloat(this.advanceValue())
 			case 'int':
-				return parseInt(advanceValue());
+				return parseInt(this.advanceValue())
 			case 'true':
-				advanceValue(); return true;
+				this.advanceValue(); return true
 			case 'false':
-				advanceValue(); return false;
+				this.advanceValue(); return false
 			case 'null':
-			default:
-				advanceValue(); return null;
+				this.advanceValue(); return null
 		}
-		
-		return null;
 	}
 }
