@@ -40,15 +40,21 @@ var example = "---\n\
 		]
 		
 		tokenize = function (str) {
+			
 		  var token, captures, ignore, input,
 		      indents = lastIndents = 0,
 		      stack = [], indentAmount = -1
 		      
-		  while (str.length) {
+		//  while (str.length) {
 		    for (var i = 0, len = tokens.length; i < len; ++i)
 		      if (captures = tokens[i][1].exec(str)) {
 		        token = [tokens[i][0], captures],
-		        str = str.replace(tokens[i][1], '')
+		        str = str.replace(tokens[i][1], '');
+		        
+		        console.log(captures);
+		        console.log(token[0]);
+		        console.log(i + '\n');
+		        
 		        switch (token[0]) {
 		          case 'comment':
 		            ignore = true
@@ -74,6 +80,7 @@ var example = "---\n\
 		            }
 		        }
 		        break
+		       
 		      }
 		    if (!ignore)
 		      if (token)
@@ -82,11 +89,13 @@ var example = "---\n\
 		      else 
 		        throw new SyntaxError(context(str))
 		    ignore = false
-		  }
+		     
+		  //}
 		  return stack
+		  
 		}
 		
-		console.log(tokenize(example).length);
+		tokenize(example);
 	</script>
 	
 </head>

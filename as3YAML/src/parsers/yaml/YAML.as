@@ -36,6 +36,7 @@ package parsers.yaml
 			[']', /^\]/],
 			['-', /^\-/],
 			[':', /^[:]/],
+			// this regular expression needs revising for Flash
 			['string', /^(?![^:\n\s]*:[^\/]{2})(([^:,\]\}\n\s]|(?!\n)\s(?!\s*?\n)|:\/\/|,(?=[^\n]*\s*[^\]\}\s\n]\s*\n)|[\]\}](?=[^\n]*\s*[^\]\}\s\n]\s*\n))*)(?=[,:\]\}\s\n]|$)/], 
 			['id', /^([\w][\w -]*)/]
 		];
@@ -58,7 +59,7 @@ package parsers.yaml
 						
 			var parser:Parser = new Parser(tokenize(value));
 			
-			Logr.l(tokenize(value).length);
+			Logr.o(parser.parse(), 0);
 		}
 		
 		/**
@@ -70,6 +71,71 @@ package parsers.yaml
 		 */
 		
 		private function tokenize(str:String):Array{
+			var stack:Array = [];
+			var captures:Array, token:Array;
+			var ignore:Boolean= false;
+			var indents:int = 0, lastIndents:int = 0, indentAmount:int = -1;
+			var input:String;
+			
+			while(str.length > 0){
+				// loop tokens
+				for(var i:int = 0, len:int = tokens.length; i < len; i++){
+					// found
+					if((captures = RegExp(tokens[i][1]).exec(str)) != null && captures.join('').length > 0){
+						token = [tokens[i][0], captures];
+						str = str.replace(tokens[i][1], '');
+						
+						switch(token[0]){
+							case 'comment':
+								ignore = true;
+								
+								break;
+							case 'indent':
+								lastIndents = indents;
+								
+								// determine indentation from the first indent
+								if(indentAmount == -1){
+									indentAmount = token[1][1].length;
+								}
+								
+								indents = token[1][1].length / indentAmount;
+								
+								if(indents == lastIndents){
+									ignore = true;
+								}else if(indents > lastIndents + 1){
+									throw new SyntaxError('invalid indentation, got ' + indents + ' instead of ' + (lastIndents + 1));
+								}else if(indents < lastIndents){
+									input = token[1].input;
+									token = ['dedent'];
+									token.input = input;
+									
+									while(--lastIndents > indents){
+										stack.push(token);
+									}
+								}	
+								
+								break;
+						}
+						
+						if(!ignore){
+							if(token != null){
+								stack.push(token);
+							}else{
+								// isn't a comment, but still no token
+								throw new SyntaxError(context(str));
+							}
+						}
+						
+						token = null;
+						ignore = false;
+					}
+				}
+			}
+			
+			return stack;
+			
+			
+			/*
 			var token;
 			var captures;
 			var ignore;
@@ -126,9 +192,11 @@ package parsers.yaml
 				ignore = false
 			}
 			return stack
+			*/
 		}
 	}
 }
+import be.proximity.framework.logging.Logr;
 
 internal function context(str:*):String {
 	if (typeof str !== 'string') return '';
@@ -214,7 +282,7 @@ internal class Parser{
 	public function parseDoc():* {
 		this.accept('doc')
 		this.expect('indent', 'expected indent after document')
-		var val = this.parse()
+		var val = this.parse()			
 		this.expect('dedent', 'document not properly dedented')
 		return val
 	}
